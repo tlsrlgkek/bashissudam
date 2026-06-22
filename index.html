@@ -40,12 +40,10 @@
         }
         .mode-btn:active { transform: scale(0.95); }
         
-        /* 🌟 현재 점수 위치 */
         #score-display { 
             position: absolute; top: 15px; left: 18px; font-size: 28px; font-weight: bold; color: #333; z-index: 10; pointer-events: none; 
         }
         
-        /* 🌟 최고기록 표시를 현재 점수 바로 아래로 이동 */
         #high-score-display { 
             position: absolute; top: 48px; left: 20px; font-size: 16px; font-weight: bold; color: #aaa; z-index: 10; pointer-events: none; 
         }
@@ -145,7 +143,6 @@
 <body>
 
     <div id="game-container">
-        <!-- 현재 점수와 최고기록 -->
         <div id="score-display">0</div>
         <div id="high-score-display">0</div>
 
@@ -207,6 +204,10 @@
         let warningStrokeDistance = 0; 
         let isGracePeriod = false;
 
+        // 🌟 빗질한 거리를 누적해서 쳐다볼 타이밍을 결정하는 변수
+        let currentPettingDistance = 0; 
+        let pettingDistanceToWarning = 0; 
+
         let currentMode = 'A'; 
         
         let highScores = {
@@ -248,8 +249,6 @@
             clearTimeout(patternTimeout);
             score = 0;
             scoreDisplay.innerText = score;
-            
-            // 🌟 텍스트 없이 숫자만 반영되도록 수정
             highScoreDisplay.innerText = highScores[currentMode]; 
             
             isScratching = false;
@@ -336,6 +335,9 @@
                     accumulatedDistance += distance;
                     hairSpawnDistance += distance;
                     
+                    // 🌟 빗질한 거리 누적 추가
+                    currentPettingDistance += distance;
+                    
                     if (hairSpawnDistance > 35) {
                         createHair(currentX, currentY);
                         hairSpawnDistance = 0;
@@ -345,6 +347,11 @@
                         score += 1;
                         scoreDisplay.innerText = score;
                         accumulatedDistance = 0; 
+                    }
+
+                    // 🌟 설정된 랜덤 빗질 목표치를 채우면 고양이가 쳐다봄!
+                    if (currentPettingDistance > pettingDistanceToWarning) {
+                        setWarningMode();
                     }
                 } 
                 else if (gameState === 'WARNING') {
@@ -372,8 +379,9 @@
             showImage('SAFE');
             stopAllSounds(); 
 
-            const randomTime = Math.floor(Math.random() * 4000) + 2000;
-            patternTimeout = setTimeout(setWarningMode, randomTime);
+            // 🌟 시간 타이머 해제하고, 대신 랜덤 거리(500~1500픽셀)를 목표로 설정
+            currentPettingDistance = 0;
+            pettingDistanceToWarning = Math.floor(Math.random() * 1000) + 500; 
         }
 
         function setWarningMode() {
@@ -393,6 +401,7 @@
             isGracePeriod = true;
             setTimeout(() => { isGracePeriod = false; }, 200);
 
+            // 쳐다보는 시간(1~3초)은 그대로 유지 (이 시간 동안 움직이면 게임 오버)
             const randomTime = Math.floor(Math.random() * 2000) + 1000;
             patternTimeout = setTimeout(() => {
                 setSafeMode();
@@ -407,7 +416,6 @@
             clearTimeout(patternTimeout);
             stopAllSounds(); 
 
-            // 🌟 게임오버 시점에 최고기록 갱신 (실시간 반영 X)
             if (score > highScores[currentMode]) {
                 highScores[currentMode] = score;
             }
@@ -460,6 +468,7 @@
                 if (gameState !== 'GAMEOVER') {
                     gameState = 'SAFE';
                     showImage('SAFE');
+                    currentPettingDistance = 0; // 숨어있는 동안 빗질 거리 초기화
                 }
             } else {
                 if (gameState !== 'GAMEOVER') {
