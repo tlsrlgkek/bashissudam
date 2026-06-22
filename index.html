@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고양이 빗기 게임</title>
+    <style>
+        body { 
+            margin: 0; padding: 0; background-color: #ffffff; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            height: 100vh; font-family: 'Arial', sans-serif; 
+            user-select: none; -webkit-user-select: none; 
+        }
+        
+        #game-container { 
+            position: relative; width: 360px; height: 540px; background-color: #ffffff; overflow: hidden; 
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            touch-action: none; 
+            display: block; 
+            transition: background-color 0.3s; 
+        }
+
+        #menu-area {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .mode-btn {
+            padding: 12px 25px; font-size: 18px; font-weight: bold;
+            border-radius: 8px; cursor: pointer; transition: 0.2s;
+        }
+        .mode-btn.active { 
+            background-color: #333333; color: #ffffff; 
+            border: 2px solid #333333; box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+        }
+        .mode-btn.inactive { 
+            background-color: #ffffff; color: #777777; 
+            border: 2px solid #cccccc; box-shadow: none; 
+        }
+        .mode-btn:active { transform: scale(0.95); }
+        
+        /* 🌟 현재 점수 위치 */
+        #score-display { 
+            position: absolute; top: 15px; left: 18px; font-size: 28px; font-weight: bold; color: #333; z-index: 10; pointer-events: none; 
+        }
+        
+        /* 🌟 최고기록 표시를 현재 점수 바로 아래로 이동 */
+        #high-score-display { 
+            position: absolute; top: 48px; left: 20px; font-size: 16px; font-weight: bold; color: #aaa; z-index: 10; pointer-events: none; 
+        }
+
+        .game-img { 
+            position: absolute; 
+            top: 2.5%; left: 2.5%; 
+            width: 95%; height: 95%; 
+            display: none; 
+            object-fit: contain; 
+            background-color: transparent; 
+            pointer-events: none; 
+        }
+        .game-img.active { display: block; }
+        
+        @keyframes breathe {
+            0% { transform: scaleY(1); }
+            50% { transform: scaleY(1.01); } 
+            100% { transform: scaleY(1); }
+        }
+
+        #img-safe.active {
+            display: block;
+            animation: breathe 2.5s ease-in-out infinite; 
+            transform-origin: bottom center; 
+        }
+
+        #img-warning.active {
+            display: block;
+        }
+
+        @keyframes jumpAttack {
+            0% { transform: scale(1); }
+            100% { transform: scale(2.5); } 
+        }
+        
+        #img-attack.active {
+            display: block;
+            animation: jumpAttack 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; 
+            transform-origin: center 40%; 
+        }
+
+        #game-over-screen { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background-color: #000000; 
+            color: #cc3333; 
+            display: none; 
+            flex-direction: column; justify-content: center; align-items: center; 
+            z-index: 999;
+            transition: background-color 0.3s; 
+        }
+        
+        #game-over-screen.active {
+            display: flex; animation: fadeIn 0.5s ease-in forwards; 
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        #game-over-title { font-size: 50px; margin: 0; font-family: 'Courier New', Courier, monospace; letter-spacing: 5px; text-align: center; transition: color 0.3s; }
+        #final-score { color: #aaa; font-size: 22px; margin-top: 20px; margin-bottom: 30px; transition: color 0.3s; }
+        
+        #restart-btn {
+            padding: 10px 25px; 
+            font-size: 16px; 
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.5); transition: 0.1s; pointer-events: auto;
+        }
+        #restart-btn:active { transform: scale(0.95); }
+
+        .hair {
+            position: absolute; width: 2px; background-color: #000000; border-radius: 50%;
+            pointer-events: none; z-index: 15; opacity: 1; transition: transform 0.8s ease-out, opacity 0.8s ease-out; 
+        }
+
+        #credits {
+            margin-top: 25px;
+            text-align: center;
+            font-size: 12px;
+            color: #aaaaaa; 
+            line-height: 1.8;
+        }
+        #credits a {
+            color: #aaaaaa;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        #credits a:hover {
+            color: #777777;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- 현재 점수와 최고기록 -->
+        <div id="score-display">0</div>
+        <div id="high-score-display">0</div>
+
+        <img id="img-safe" class="game-img" src="simbashi.png" alt="평온한 고양이">
+        <img id="img-warning" class="game-img" src="simbashi_2.png" alt="쳐다보는 고양이">
+        <img id="img-attack" class="game-img" src="simbashi_3.png" alt="공격하는 고양이">
+        
+        <div id="game-over-screen">
+            <h1 id="game-over-title">YOU DIED</h1>
+            <div id="final-score">Score: 0</div>
+            <button id="restart-btn">다시 하기</button>
+        </div>
+    </div>
+
+    <div id="menu-area">
+        <button id="btn-mode-a" class="mode-btn active">냥바시</button>
+        <button id="btn-mode-b" class="mode-btn inactive">냥바시 착순ver</button>
+    </div>
+
+    <div id="credits">
+        <div>게임 제작 :: @0o0e0A</div>
+        <div>원본 게임 :: <a href="https://byeorisim.itch.io/brush-jjaemu" target="_blank">https://byeorisim.itch.io/brush-jjaemu</a></div>
+    </div>
+
+    <script>
+        const sndBbanhi1 = new Audio('bbanhi_1_sound.mp3');
+        const sndBbanhi2 = new Audio('bbanhi_2_sound.mp3');
+        const sndAttack = new Audio('attack_sound.mp3');
+        const sndLove = new Audio('love_sound.mp3');
+
+        sndBbanhi1.volume = 0.7;
+        sndBbanhi2.volume = 1.0; 
+        sndAttack.volume = 0.8;
+        sndLove.volume = 0.8;
+
+        const btnModeA = document.getElementById('btn-mode-a');
+        const btnModeB = document.getElementById('btn-mode-b');
+
+        const imgSafe = document.getElementById('img-safe');
+        const imgWarning = document.getElementById('img-warning');
+        const imgAttack = document.getElementById('img-attack');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const gameOverTitle = document.getElementById('game-over-title'); 
+        const scoreDisplay = document.getElementById('score-display');
+        const highScoreDisplay = document.getElementById('high-score-display');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const gameContainer = document.getElementById('game-container');
+        const restartBtn = document.getElementById('restart-btn');
+
+        let score = 0;
+        let isScratching = false; 
+        let gameState = 'START'; 
+        let patternTimeout;
+        
+        let lastX = 0;
+        let lastY = 0;
+        let accumulatedDistance = 0; 
+        let hairSpawnDistance = 0; 
+        let warningStrokeDistance = 0; 
+        let isGracePeriod = false;
+
+        let currentMode = 'A'; 
+        
+        let highScores = {
+            'A': 0,
+            'B': 0
+        };
+
+        function stopAllSounds() {
+            sndBbanhi1.pause(); sndBbanhi1.currentTime = 0;
+            sndBbanhi2.pause(); sndBbanhi2.currentTime = 0;
+            sndAttack.pause(); sndAttack.currentTime = 0;
+            sndLove.pause(); sndLove.currentTime = 0;
+        }
+
+        function startGame(mode) {
+            currentMode = mode;
+            stopAllSounds(); 
+            
+            if (mode === 'A') {
+                gameContainer.style.cursor = "url('cursor_1.png') 0 0, pointer"; 
+                gameContainer.style.backgroundColor = '#ffffff'; 
+                btnModeA.className = 'mode-btn active';
+                btnModeB.className = 'mode-btn inactive';
+                
+                imgSafe.src = "simbashi.png";
+                imgWarning.src = "simbashi_2.png";
+                imgAttack.src = "simbashi_3.png";
+            } else if (mode === 'B') {
+                gameContainer.style.cursor = "url('cursor_2.png') 0 0, crosshair";
+                gameContainer.style.backgroundColor = '#fff0f5'; 
+                btnModeA.className = 'mode-btn inactive';
+                btnModeB.className = 'mode-btn active';
+                
+                imgSafe.src = "simbashi_4.png";
+                imgWarning.src = "simbashi_5.png";
+                imgAttack.src = "simbashi_6.png";
+            }
+
+            clearTimeout(patternTimeout);
+            score = 0;
+            scoreDisplay.innerText = score;
+            
+            // 🌟 텍스트 없이 숫자만 반영되도록 수정
+            highScoreDisplay.innerText = highScores[currentMode]; 
+            
+            isScratching = false;
+            accumulatedDistance = 0;
+            warningStrokeDistance = 0;
+            isGracePeriod = false;
+            restartBtn.style.display = 'none';
+            document.querySelectorAll('.hair').forEach(h => h.remove());
+
+            setSafeMode();
+        }
+
+        btnModeA.addEventListener('click', () => startGame('A'));
+        btnModeB.addEventListener('click', () => startGame('B'));
+
+        function showImage(state) {
+            imgSafe.classList.remove('active');
+            imgWarning.classList.remove('active');
+            
+            if (state !== 'GAMEOVER') {
+                imgAttack.classList.remove('active');
+            }
+            
+            gameOverScreen.classList.remove('active');
+
+            if (state === 'SAFE') imgSafe.classList.add('active');
+            else if (state === 'WARNING') imgWarning.classList.add('active');
+            else if (state === 'ATTACK') imgAttack.classList.add('active');
+            else if (state === 'GAMEOVER') {
+                imgAttack.classList.add('active'); 
+                gameOverScreen.classList.add('active'); 
+            }
+        }
+
+        function createHair(x, y) {
+            const hair = document.createElement('div');
+            hair.className = 'hair';
+            
+            const rect = gameContainer.getBoundingClientRect();
+            const startX = x - rect.left + (Math.random() - 0.5) * 30;
+            const startY = y - rect.top + (Math.random() - 0.5) * 30;
+            const length = Math.random() * 15 + 20; 
+            const startRotation = Math.random() * 360; 
+            
+            hair.style.left = startX + 'px';
+            hair.style.top = startY + 'px';
+            hair.style.height = length + 'px';
+            hair.style.transform = `rotate(${startRotation}deg)`;
+            
+            gameContainer.appendChild(hair);
+            
+            setTimeout(() => {
+                const endY = startY + Math.random() * 60 + 100; 
+                const endX = startX + (Math.random() - 0.5) * 80; 
+                const endRotation = startRotation + (Math.random() - 0.5) * 180; 
+                hair.style.transform = `translate(${endX - startX}px, ${endY - startY}px) rotate(${endRotation}deg)`;
+                hair.style.opacity = '0';
+            }, 10);
+            
+            setTimeout(() => hair.remove(), 800);
+        }
+
+        function handlePointerDown(e) {
+            if (gameState === 'GAMEOVER') return; 
+            isScratching = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        }
+
+        function handlePointerMove(e) {
+            if (!isScratching || gameState === 'GAMEOVER') return;
+
+            let currentX = e.clientX;
+            let currentY = e.clientY;
+            let dx = currentX - lastX;
+            let dy = currentY - lastY;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 0) {
+                lastX = currentX;
+                lastY = currentY;
+
+                if (gameState === 'SAFE') {
+                    accumulatedDistance += distance;
+                    hairSpawnDistance += distance;
+                    
+                    if (hairSpawnDistance > 35) {
+                        createHair(currentX, currentY);
+                        hairSpawnDistance = 0;
+                    }
+                    
+                    if (accumulatedDistance > 100) {
+                        score += 1;
+                        scoreDisplay.innerText = score;
+                        accumulatedDistance = 0; 
+                    }
+                } 
+                else if (gameState === 'WARNING') {
+                    if (!isGracePeriod) {
+                        warningStrokeDistance += distance;
+                        if (warningStrokeDistance > 150) {
+                            triggerGameOver();
+                        }
+                    }
+                }
+            }
+        }
+
+        function handlePointerUp() {
+            isScratching = false;
+        }
+
+        gameContainer.addEventListener('pointerdown', handlePointerDown);
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+        window.addEventListener('pointercancel', handlePointerUp);
+
+        function setSafeMode() {
+            gameState = 'SAFE';
+            showImage('SAFE');
+            stopAllSounds(); 
+
+            const randomTime = Math.floor(Math.random() * 4000) + 2000;
+            patternTimeout = setTimeout(setWarningMode, randomTime);
+        }
+
+        function setWarningMode() {
+            if (gameState === 'GAMEOVER') return;
+            gameState = 'WARNING';
+            showImage('WARNING');
+            
+            if (currentMode === 'A') {
+                sndBbanhi1.currentTime = 0;
+                sndBbanhi1.play().catch(e => console.log('Audio play failed: ', e));
+            } else {
+                sndBbanhi2.currentTime = 0;
+                sndBbanhi2.play().catch(e => console.log('Audio play failed: ', e));
+            }
+            
+            warningStrokeDistance = 0; 
+            isGracePeriod = true;
+            setTimeout(() => { isGracePeriod = false; }, 200);
+
+            const randomTime = Math.floor(Math.random() * 2000) + 1000;
+            patternTimeout = setTimeout(() => {
+                setSafeMode();
+            }, randomTime);
+        }
+
+        function triggerGameOver() {
+            if (gameState === 'GAMEOVER') return; 
+            gameState = 'GAMEOVER';
+            isScratching = false;
+            
+            clearTimeout(patternTimeout);
+            stopAllSounds(); 
+
+            // 🌟 게임오버 시점에 최고기록 갱신 (실시간 반영 X)
+            if (score > highScores[currentMode]) {
+                highScores[currentMode] = score;
+            }
+            
+            showImage('ATTACK');
+
+            if (currentMode === 'B') {
+                sndLove.currentTime = 0;
+                sndLove.play().catch(e => console.log('Audio play failed: ', e));
+                
+                gameOverTitle.innerText = 'YOU HUNTED';
+                gameOverScreen.style.backgroundColor = '#ff99b4'; 
+                gameOverTitle.style.color = '#ffffff'; 
+                finalScoreDisplay.style.color = '#ffffff'; 
+                
+                restartBtn.style.backgroundColor = '#ffffff';
+                restartBtn.style.color = '#ff99b4';
+                restartBtn.style.border = '2px solid #ffffff';
+            } else {
+                sndAttack.currentTime = 0;
+                sndAttack.play().catch(e => console.log('Audio play failed: ', e));
+
+                gameOverTitle.innerText = 'YOU DIED';
+                gameOverScreen.style.backgroundColor = '#000000'; 
+                gameOverTitle.style.color = '#cc3333'; 
+                finalScoreDisplay.style.color = '#aaa'; 
+                
+                restartBtn.style.backgroundColor = '#000000';
+                restartBtn.style.color = '#ffffff';
+                restartBtn.style.border = '2px solid #333333';
+            }
+
+            setTimeout(() => {
+                showImage('GAMEOVER');
+                finalScoreDisplay.innerText = `Score: ${score}`;
+                
+                restartBtn.style.display = 'block'; 
+            }, 800);
+        }
+
+        restartBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            startGame(currentMode); 
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                clearTimeout(patternTimeout);
+                stopAllSounds();
+                if (gameState !== 'GAMEOVER') {
+                    gameState = 'SAFE';
+                    showImage('SAFE');
+                }
+            } else {
+                if (gameState !== 'GAMEOVER') {
+                    setSafeMode();
+                }
+            }
+        });
+
+        startGame('A');
+
+    </script>
+</body>
+</html>
