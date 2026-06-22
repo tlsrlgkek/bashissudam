@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>냥바시 긁기</title>
+    <title>고양이 빗기 게임</title>
     <style>
         body { 
             margin: 0; padding: 0; background-color: #ffffff; 
@@ -204,7 +204,6 @@
         let warningStrokeDistance = 0; 
         let isGracePeriod = false;
 
-        // 🌟 빗질한 거리를 누적해서 쳐다볼 타이밍을 결정하는 변수
         let currentPettingDistance = 0; 
         let pettingDistanceToWarning = 0; 
 
@@ -335,7 +334,6 @@
                     accumulatedDistance += distance;
                     hairSpawnDistance += distance;
                     
-                    // 🌟 빗질한 거리 누적 추가
                     currentPettingDistance += distance;
                     
                     if (hairSpawnDistance > 35) {
@@ -349,7 +347,6 @@
                         accumulatedDistance = 0; 
                     }
 
-                    // 🌟 설정된 랜덤 빗질 목표치를 채우면 고양이가 쳐다봄!
                     if (currentPettingDistance > pettingDistanceToWarning) {
                         setWarningMode();
                     }
@@ -379,9 +376,9 @@
             showImage('SAFE');
             stopAllSounds(); 
 
-            // 🌟 시간 타이머 해제하고, 대신 랜덤 거리(500~1500픽셀)를 목표로 설정
+            // 🌟 약 5번(500) ~ 50번(5000) 빗질 사이에 랜덤으로 쳐다보도록 설정!
             currentPettingDistance = 0;
-            pettingDistanceToWarning = Math.floor(Math.random() * 1000) + 500; 
+            pettingDistanceToWarning = Math.floor(Math.random() * 4500) + 500; 
         }
 
         function setWarningMode() {
@@ -401,7 +398,6 @@
             isGracePeriod = true;
             setTimeout(() => { isGracePeriod = false; }, 200);
 
-            // 쳐다보는 시간(1~3초)은 그대로 유지 (이 시간 동안 움직이면 게임 오버)
             const randomTime = Math.floor(Math.random() * 2000) + 1000;
             patternTimeout = setTimeout(() => {
                 setSafeMode();
@@ -468,7 +464,7 @@
                 if (gameState !== 'GAMEOVER') {
                     gameState = 'SAFE';
                     showImage('SAFE');
-                    currentPettingDistance = 0; // 숨어있는 동안 빗질 거리 초기화
+                    currentPettingDistance = 0; 
                 }
             } else {
                 if (gameState !== 'GAMEOVER') {
